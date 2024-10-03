@@ -8,6 +8,8 @@ import {
   setDoc,
   onSnapshot,
   addDoc,
+  updateDoc,
+  deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import BudgetChart from './BudgetChart';
@@ -20,6 +22,11 @@ const Dashboard = ({ auth }) => {
   const [expenseCategory, setExpenseCategory] = useState('');
 
   const [newBudget, setNewBudget] = useState('');
+
+  // State for editing a transaction
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editCategory, setEditCategory] = useState('');
 
   const userId = auth.getProfile().sub;
 
@@ -80,6 +87,44 @@ const Dashboard = ({ auth }) => {
     setExpenseCategory('');
   };
 
+  // Edit transaction functions
+  const startEditing = (transaction) => {
+    setEditingTransaction(transaction);
+    setEditAmount(transaction.amount);
+    setEditCategory(transaction.category);
+  };
+
+  const cancelEditing = () => {
+    setEditingTransaction(null);
+    setEditAmount('');
+    setEditCategory('');
+  };
+
+  const saveEditedTransaction = async (e) => {
+    e.preventDefault();
+
+    const transactionRef = doc(
+      db,
+      'users',
+      userId,
+      'transactions',
+      editingTransaction.id
+    );
+
+    await updateDoc(transactionRef, {
+      amount: parseFloat(editAmount),
+      category: editCategory,
+    });
+
+    // Reset editing state
+    cancelEditing();
+  };
+
+  const deleteTransaction = async (transactionId) => {
+    const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
+    await deleteDoc(transactionRef);
+  };
+
   return (
     <div>
       <h1>Welcome, {auth.getProfile().name}</h1>
@@ -118,13 +163,40 @@ const Dashboard = ({ auth }) => {
         <button type="submit">Add Expense</button>
       </form>
 
+      {/* Edit Transaction Form */}
+      {editingTransaction && (
+        <form onSubmit={saveEditedTransaction}>
+          <h3>Edit Transaction</h3>
+          <input
+            type="number"
+            value={editAmount}
+            onChange={(e) => setEditAmount(e.target.value)}
+            placeholder="Enter amount"
+            required
+          />
+          <input
+            type="text"
+            value={editCategory}
+            onChange={(e) => setEditCategory(e.target.value)}
+            placeholder="Enter category"
+            required
+          />
+          <button type="submit">Save</button>
+          <button type="button" onClick={cancelEditing}>
+            Cancel
+          </button>
+        </form>
+      )}
+
       {/* Display Transactions */}
       <h3>Your Transactions</h3>
       <ul>
         {transactions.map((transaction) => (
           <li key={transaction.id}>
             {transaction.type === 'expense' ? '-' : '+'}${transaction.amount.toFixed(2)} -{' '}
-            {transaction.category}
+            {transaction.category}{' '}
+            <button onClick={() => startEditing(transaction)}>Edit</button>{' '}
+            <button onClick={() => deleteTransaction(transaction.id)}>Delete</button>
           </li>
         ))}
       </ul>
