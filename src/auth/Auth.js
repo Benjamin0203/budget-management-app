@@ -3,8 +3,8 @@ import auth0 from 'auth0-js';
 
 export default class Auth {
   auth0 = new auth0.WebAuth({
-    domain: 'dev-t2r27j51512y54ir.us.auth0.com',
-    clientID: 'yvk9qF6QB6rvMX8QTkV04uHTQrs3PUew',
+    domain: process.env.REACT_APP_AUTH0_DOMAIN,
+    clientID: process.env.REACT_APP_AUTH0_CLIENT_ID,
     redirectUri: 'http://localhost:3000/callback',
     responseType: 'token id_token',
     scope: 'openid profile email',
